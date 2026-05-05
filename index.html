@@ -1362,16 +1362,22 @@ Devuelve:
 
     const data=await callGemini(prompt);
     thinkEl.classList.add('hidden');
-    if(data){
-      pos.currentPrice=currentPrice;
-      pos.lastCheck=new Date().toISOString();
-      pos.status=(data.recommendation==='SALIR'||parseInt(data.criteria_met)>=2)?'alert':'holding';
-      savePortfolio();
-      renderSalidaResult(data,isVal);
+    if(!data){
+      document.getElementById('error-salida').innerHTML=`<div class="error-msg">⚠ Sandy no pudo completar el analisis de salida.<br>Causa probable: limite de consultas de Gemini alcanzado por hoy.<br>Intenta mañana cuando se reinicie el limite.</div>`;
+      return;
     }
+    pos.currentPrice=currentPrice;
+    pos.lastCheck=new Date().toISOString();
+    pos.status=(data.recommendation==='SALIR'||parseInt(data.criteria_met)>=2)?'alert':'holding';
+    savePortfolio();
+    renderSalidaResult(data,isVal);
   }catch(err){
     thinkEl.classList.add('hidden');
-    document.getElementById('error-salida').innerHTML=`<div class="error-msg">Error: ${err.message}</div>`;
+    const esLimite = err.message.includes('429') || err.message.includes('limite') || err.message.includes('Note') || err.message.includes('Information');
+    const msg = esLimite
+      ? '⚠ Limite de consultas de Alpha Vantage alcanzado por hoy.<br>El analisis de salida requiere datos de precio actuales.<br>Intenta mañana cuando se reinicie el limite (cada 24 horas).'
+      : `⚠ Error al obtener datos: ${err.message}`;
+    document.getElementById('error-salida').innerHTML=`<div class="error-msg">${msg}</div>`;
   }
 }
 
